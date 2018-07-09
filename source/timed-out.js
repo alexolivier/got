@@ -1,13 +1,15 @@
 'use strict';
 
 // Forked from https://github.com/floatdrop/timed-out
+// ESOCKETTIMEDOUT - connected, but no response
+// ETIMEDOUT - stuck at `connecting` state
 
 module.exports = function (req, time) {
 	if (req.timeoutTimer) {
 		return req;
 	}
 
-	const delays = isNaN(time) ? time : {socket: time, connect: time};
+	const delays = isNaN(time) ? time : {request: time};
 	const host = req._headers ? (' to ' + req._headers.host) : '';
 
 	function throwESOCKETTIMEDOUT() {
@@ -32,10 +34,10 @@ module.exports = function (req, time) {
 		req.requestTimeoutTimer = setTimeout(() => {
 			clear();
 
-			if (req.connection.connecting) {
-				throwESOCKETTIMEDOUT();
-			} else {
+			if (req.connection.connecting || req.connection._connecting) {
 				throwETIMEDOUT();
+			} else {
+				throwESOCKETTIMEDOUT();
 			}
 		}, delays.request);
 	}
